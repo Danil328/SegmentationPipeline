@@ -1,0 +1,148 @@
+CROP:
+  path_to_data: "/home/danil.akhmetov/Projects/SeaIce/data/"
+  width: 4096
+  height: 4096
+  resize_to: 8192
+  interception: 2048
+  k: 1
+DATA:
+  path_to_project: "/home/danil.akhmetov/Projects/SeaIce/"
+  path_to_data: "/home/danil.akhmetov/Projects/SeaIce/data/"
+  type: &type "one_class"
+  n_classes: &n_classes 1
+  width: 1024
+  height: 1024
+TRAIN:
+  fold: &fold 0
+  batch_size: 4
+  batch_accumulation: 4
+
+  train_params:
+    name: &name baseline
+    model: &model models.segmentation_models_pytorch_danil.Unet
+    model_params: &model_params
+      classes: *n_classes
+      encoder_weights: imagenet
+      encoder_name: efficientnet-b3
+      attention_type: scse
+      hypercolumn: 'true'
+    weights: ''
+
+#    name: &name hrnet_4096_v2
+#    model: &model models.hrnet.seg_hrnet.HighResolutionNet
+#    model_params: &model_params
+#      path_to_config: '/home/danil.akhmetov/Projects/SeaIce/src/models/hrnet/hrnet_w48.yaml'
+#      classes: *n_classes
+#      final_upsampling: 4
+#    weights: '/home/danil.akhmetov/Projects/SeaIce/pretrained_weights/hrnetv2_w48_imagenet_pretrained.pth'
+
+    metrics:
+      metrics.HardDiceCoef:
+        threshold: 0.5
+      metrics.SoftDiceCoef:
+        class_id: -1
+
+  stages:
+    warmup:
+      lookahead: "true"
+      optimizer: optimizer.RAdam
+      optimizer_params:
+        lr: 0.001
+        weight_decay: 0.0001
+      scheduler: optimizer.GradualWarmupScheduler
+      scheduler_params:
+        multiplier: 10
+        total_epoch: 10
+      epochs: 10
+      loss: losses.ComboSuperVisionLoss
+      loss_params:
+        weights:
+          bce: 3
+          dice: 1
+
+#    freeze:
+#      lookahead: "true"
+#      optimizer: optimizer.RAdam
+#      optimizer_params:
+#        lr: 0.001
+#        weight_decay: 0.00001
+#      scheduler: StepLR
+#      scheduler_params:
+#        step_size: 5
+#      epochs: 10
+
+    cosine:
+      lookahead: "true"
+      optimizer: optimizer.RAdam
+      optimizer_params:
+        lr: 0.0005
+        weight_decay: 0.00001
+      scheduler: CosineAnnealingLR
+      scheduler_params:
+        T_max: 10
+        eta_min: 0.000001
+      epochs: 100
+      loss: losses.ComboSuperVisionLoss
+      loss_params:
+        weights:
+          focal: 3
+          dice: 1
+
+    lovasz:
+      lookahead: "true"
+      optimizer: optimizer.RAdam
+      optimizer_params:
+        lr: 0.0001
+        weight_decay: 0.00001
+      scheduler: CosineAnnealingLR
+      scheduler_params:
+        T_max: 5
+        eta_min: 0.000001
+      epochs: 20
+      loss: losses.ComboSuperVisionLoss
+      loss_params:
+        weights:
+          lovasz_sigmoid: 1
+
+    sgd:
+      lookahead: "true"
+      optimizer: SGD
+      optimizer_params:
+        lr: 0.0001
+        weight_decay: 0.00001
+      scheduler: CosineAnnealingLR
+      scheduler_params:
+        T_max: 5
+        eta_min: 0.000001
+      epochs: 20
+      loss: losses.ComboSuperVisionLoss
+      loss_params:
+        weights:
+          bce: 3
+          dice: 1
+
+  swa: 0
+  dumps:
+    metric_name: HardDiceCoef
+    path: /home/danil.akhmetov/Projects/SeaIce/output/
+    weights: weights
+    logs: logs
+
+TEST:
+  name: *name
+  type: *type
+  batch_size: 16
+  fold: *fold
+  phase: 'val'
+  stage: 'lovasz'
+  model: *model
+  model_params: *model_params
+  weights: /home/danil.akhmetov/Projects/SeaIce/output/weights/
+  TTA: 'true'
+  channel_threshold: "true"
+  use_dense_crf: "false"
+  use_dilations: "false"
+  use_poligonization: "false"
+  final_join: "false"
+  path_to_final_join: "/home/danil.akhmetov/Projects/SeaIce/output/weights/final_weights_v1"
+

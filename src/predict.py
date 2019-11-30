@@ -43,11 +43,11 @@ def main():
 
 
 def search_threshold(device, transforms):
-    val_dataset = SegmentationDatasetRandomCrop(data_folder=os.path.join(config_data['path_to_data'], f"crop_train_images_{config_crop['width']}"),
-                                                phase="val",
-                                                fold=config['fold'], type=config_data['type'], num_classes=config_data['n_classes'],
-                                                shape=(config_data['width'], config_data['height']),
-                                                orig_shape=(config_crop['width'], config_crop['height']))
+    val_dataset = SegmentationDataset(data_folder=os.path.join(config_data['path_to_data'], f"crop_train_images_{config_crop['width']}"),
+                                      phase="val",
+                                      fold=config['fold'],
+                                      num_classes=config_data['n_classes'],
+                                      shape=(config_data['width'], config_data['height']))
 
     val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=16, drop_last=False)
     models = []
@@ -147,10 +147,10 @@ def search_threshold(device, transforms):
 
 def predict(best_threshold, min_size, device, transforms):
     print("Predict ...")
-    test_dataset = SegmentationDatasetRandomCrop(data_folder=os.path.join(config_data['path_to_data'], "test_images/"),
-                                                 phase='test', num_classes=config_data['n_classes'], type=config_data['type'],
-                                                 shape=(config_data['width'], config_data['height']),
-                                                 orig_shape=(config_crop['width'], config_crop['height']))
+    test_dataset = SegmentationDataset(data_folder=os.path.join(config_data['path_to_data'], "test_images/"),
+                                       phase='test', num_classes=config_data['n_classes'],
+                                       shape=(config_data['width'], config_data['height']))
+
     test_loader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=16, drop_last=False)
 
     models = []

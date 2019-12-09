@@ -35,7 +35,7 @@ class Factory:
         else:
             base_opt = getattr(torch.optim, stage['optimizer'])(
                 params=filter(lambda p: p.requires_grad, model.parameters()), **stage['optimizer_params'])
-        if stage['lookahead'] == 'true':
+        if stage['lookahead']:
             return Lookahead(base_opt, k=5, alpha=0.5)
         else:
             return base_opt

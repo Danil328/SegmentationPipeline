@@ -41,8 +41,6 @@ class Unet(EncoderDecoder):
             attention_type=None,
             hypercolumn=False,
     ):
-        hypercolumn = True if hypercolumn == 'true' else False
-
         encoder = get_encoder(
             encoder_name,
             encoder_weights=encoder_weights

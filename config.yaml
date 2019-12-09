@@ -25,16 +25,8 @@ TRAIN:
       encoder_weights: imagenet
       encoder_name: efficientnet-b3
       attention_type: scse
-      hypercolumn: 'true'
+      hypercolumn: !!bool 'true'
     weights: ''
-
-#    name: &name hrnet_4096_v2
-#    model: &model models.hrnet.seg_hrnet.HighResolutionNet
-#    model_params: &model_params
-#      path_to_config: '/home/danil.akhmetov/Projects/SeaIce/src/models/hrnet/hrnet_w48.yaml'
-#      classes: *n_classes
-#      final_upsampling: 4
-#    weights: '/home/danil.akhmetov/Projects/SeaIce/pretrained_weights/hrnetv2_w48_imagenet_pretrained.pth'
 
     metrics:
       metrics.HardDiceCoef:
@@ -44,7 +36,7 @@ TRAIN:
 
   stages:
     warmup:
-      lookahead: "true"
+      lookahead: !!bool "true"
       optimizer: optimizer.RAdam
       optimizer_params:
         lr: 0.001
@@ -61,7 +53,7 @@ TRAIN:
           dice: 1
 
 #    freeze:
-#      lookahead: "true"
+#      lookahead: !!bool "true"
 #      optimizer: optimizer.RAdam
 #      optimizer_params:
 #        lr: 0.001
@@ -72,7 +64,7 @@ TRAIN:
 #      epochs: 10
 
     cosine:
-      lookahead: "true"
+      lookahead: !!bool "true"
       optimizer: optimizer.RAdam
       optimizer_params:
         lr: 0.0005
@@ -89,7 +81,7 @@ TRAIN:
           dice: 1
 
     lovasz:
-      lookahead: "true"
+      lookahead: !!bool "true"
       optimizer: optimizer.RAdam
       optimizer_params:
         lr: 0.0001
@@ -105,7 +97,7 @@ TRAIN:
           lovasz_sigmoid: 1
 
     sgd:
-      lookahead: "true"
+      lookahead: !!bool "true"
       optimizer: SGD
       optimizer_params:
         lr: 0.0001
@@ -138,11 +130,11 @@ TEST:
   model: *model
   model_params: *model_params
   weights: /home/danil.akhmetov/Projects/SeaIce/output/weights/
-  TTA: 'true'
-  channel_threshold: "true"
-  use_dense_crf: "false"
-  use_dilations: "false"
-  use_poligonization: "false"
-  final_join: "false"
+  TTA: !!bool 'true'
+  channel_threshold: !!bool "true"
+  use_dense_crf: !!bool "false"
+  use_dilations: !!bool "false"
+  use_poligonization: !!bool "false"
+  final_join: !!bool "false"
   path_to_final_join: "/home/danil.akhmetov/Projects/SeaIce/output/weights/final_weights_v1"
 

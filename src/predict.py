@@ -56,7 +56,7 @@ def search_threshold(device, transforms):
         model.load_state_dict(torch.load(weight))
         model = model.to(device)
         model.eval()
-        if config['TTA'] == 'true':
+        if config['TTA']:
             model = tta.SegmentationTTAWrapper(model, transforms)
         models.append(model)
     print(f"Use {len(models)} models.")
@@ -81,10 +81,10 @@ def search_threshold(device, transforms):
     masks = np.vstack(masks)
     filenames = [item for sublist in filenames for item in sublist]
 
-    if config['use_dense_crf'] != 'true':
+    if config['use_dense_crf']:
         print("Search threshold ...")
         thresholds = np.arange(0.1, 1.0, 0.05)
-        if config['channel_threshold'] == 'true':
+        if config['channel_threshold']:
             best_threshold = []
             for channel in range(masks.shape[1]):
                 scores = []
@@ -119,7 +119,7 @@ def search_threshold(device, transforms):
             for j in range(tmp.shape[1]):
                 tmp[i,j] = post_process(tmp[i,j], best_threshold, threshold, j,
                                         use_dense_crf=config['use_dense_crf'],
-                                        image=cv2.imread(filenames[i]) if config['use_dense_crf']=='true' else None,
+                                        image=cv2.imread(filenames[i]) if config['use_dense_crf'] else None,
                                         use_dilations=config['use_dilations'],
                                         use_poligonization=config['use_poligonization'])
         score = dice_coef_numpy(preds=tmp, trues=masks)
@@ -136,8 +136,8 @@ def search_threshold(device, transforms):
         for j in range(tmp.shape[1]):
             tmp[i,j] = post_process(tmp[i,j], best_threshold, best_min_size_threshold, j,
                                     use_dense_crf=config['use_dense_crf'],
-                                    image=cv2.resize(cv2.imread(filenames[i]), (2048,2048)) if config['use_dense_crf']=='true' else None,
-                                    use_dilations='true',
+                                    image=cv2.resize(cv2.imread(filenames[i]), (2048,2048)) if config['use_dense_crf'] else None,
+                                    use_dilations=True,
                                     use_poligonization=config['use_poligonization'])
     score = dice_coef_numpy(preds=tmp, trues=masks)
     print(f"Score with dilation: {score}")
@@ -159,7 +159,7 @@ def predict(best_threshold, min_size, device, transforms):
         model.load_state_dict(torch.load(weight))
         model = model.to(device)
         model.eval()
-        if config['TTA'] == 'true':
+        if config['TTA']:
             model = tta.SegmentationTTAWrapper(model, transforms)
         models.append(model)
     print(f"Use {len(models)} models.")
@@ -188,7 +188,7 @@ def predict(best_threshold, min_size, device, transforms):
         image_shape = cv2.imread(os.path.join(config_data['path_to_data'], 'test_images', filename)).shape
         pred_img = post_process(np.squeeze(predicts[idx]), best_threshold, min_size, cls=0,
                                         use_dense_crf=config['use_dense_crf'],
-                                        image=cv2.resize(cv2.imread(test_dataset.images[i]), (config_data['width'],config_data['height'])) if config['use_dense_crf']=='true' else None,
+                                        image=cv2.resize(cv2.imread(test_dataset.images[i]), (config_data['width'],config_data['height'])) if config['use_dense_crf'] else None,
                                         use_dilations=config['use_dilations'],
                                         use_poligonization=config['use_poligonization'])
 
@@ -196,12 +196,12 @@ def predict(best_threshold, min_size, device, transforms):
         cv2.imwrite(os.path.join(config_data['path_to_project'], 'tmp', 'predict_test_images_new_size', f'{filename.replace("_hh", "").replace("jpg", "png")}'), pred_img)
 
 
-def post_process(mask, threshold, min_size, cls, use_dense_crf="false", use_dilations="false", use_poligonization="false", image=None):
+def post_process(mask, threshold, min_size, cls, use_dense_crf=False, use_dilations=False, use_poligonization=False, image=None):
     """
     Post processing of each predicted mask, components with lesser number of pixels
     than `min_size` are ignored
     """
-    if use_dense_crf  == 'true' and image is not None:
+    if use_dense_crf and image is not None:
         mask = crf.dense_crf(np.array(cv2.resize(image, (config_data['height'], config_data['width']))).astype(np.uint8), mask)
     else:
         if not isinstance(threshold, list):
@@ -209,7 +209,7 @@ def post_process(mask, threshold, min_size, cls, use_dense_crf="false", use_dila
         elif isinstance(threshold, list):
             mask = (mask > threshold[cls]).astype(np.uint8)
 
-    if use_dilations == 'true':
+    if use_dilations:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
 
@@ -221,7 +221,7 @@ def post_process(mask, threshold, min_size, cls, use_dense_crf="false", use_dila
             if p.sum() > min_size:
                 mask[p] = 1
 
-    if use_poligonization == 'true':
+    if use_poligonization:
         cnts, hierarchy = cv2.findContours(mask.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]  # get largest five contour area
         poligon_mask = np.zeros_like(mask, dtype=np.float32)
